@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 )
 
 type ParcelStore struct {
@@ -98,16 +99,16 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 		sql.Named("status", ParcelStatusRegistered))
 
 	if err != nil {
-		return err
+		return errors.New("ошибка запроса")
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errors.New("ошибка получение строк")
 	}
 
 	if rowsAffected == 0 {
-		return err
+		return errors.New("посылка не найдена или ее нельзя изменить")
 	}
 
 	return nil
@@ -122,16 +123,16 @@ func (s ParcelStore) Delete(number int) error {
 		sql.Named("status", ParcelStatusRegistered))
 
 	if err != nil {
-		return err
+		return errors.New("ошибка запроса")
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errors.New("ошибка получение строк")
 	}
 
 	if rowsAffected == 0 {
-		return err
+		return errors.New("посылка не найдена или ее нельзя удалить")
 	}
 
 	return nil
