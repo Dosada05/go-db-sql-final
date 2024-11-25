@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type ParcelStore struct {
@@ -42,7 +41,10 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :number",
 		sql.Named("number", number))
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
-
+	// Обработал ошибку
+	if err != nil {
+		return p, err
+	}
 	return p, err
 }
 
@@ -70,6 +72,10 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 		res = append(res, r)
 	}
+	// Обработал ошибку как из ссылки правильно ли ?
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return res, nil
 }
@@ -86,40 +92,48 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 	// реализуйте обновление адреса в таблице parcel
 	// менять адрес можно только если значение статуса registered
 
-	p := Parcel{}
+	result, err := s.db.Exec("UPDATE parcel SET address = :address WHERE number = :number AND status = :status",
+		sql.Named("address", address),
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number = :number",
-		sql.Named("number", number))
-	err := row.Scan(&p.Status)
-
-	if p.Status != ParcelStatusRegistered {
-		fmt.Println("Not registered")
+	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Exec("UPDATE parcel SET address = :address WHERE number = :number",
-		sql.Named("address", address),
-		sql.Named("number", number))
-	return err
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return err
+	}
+
+	return nil
 }
 
 func (s ParcelStore) Delete(number int) error {
 	// реализуйте удаление строки из таблицы parcel
 	// удалять строку можно только если значение статуса registered
 
-	p := Parcel{}
+	result, err := s.db.Exec("DELETE FROM parcel WHERE number = :number AND status = :status",
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number = :number",
-		sql.Named("number", number))
-	err := row.Scan(&p.Status)
-
-	if p.Status != ParcelStatusRegistered {
-		fmt.Println("Not registered")
+	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Exec("DELETE FROM parcel WHERE number = :number",
-		sql.Named("number", number))
-	return err
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return err
+	}
+
+	return nil
 
 }
